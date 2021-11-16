@@ -25,18 +25,18 @@ def FlatPesticide(XYPop,PesticideField,Pesticide_XY):
 ##############################################################################
 ##############################################################################
 #Variable Params
-Years = 15
+Years = 10
 Days = 200
 
 R_Allele_Ratio = 1e-5
 
-SystemSize = 1000
-OSR_Proportion = 0.25
+SystemSize = 60
+OSR_Proportion = 0.5
 
 
 #System Params
 OSR_Attract = 1.
-Refuge_Attract = 0.2
+Refuge_Attract = 1.#0.2 ###############################################################
 
 Characteristic = 5
 
@@ -58,10 +58,28 @@ RefugeSize = int(SystemSize * (1-OSR_Proportion))
 SystemSize = OSRWidth + RefugeSize
 
 
+BreedingTime = Days-1 #int(Days/2)
+
+GradientRange = 2   #Smallest value is 2
+
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
 #SaveFileCreation
+SaveFileName = ("Saved_Plots/Years_%d_SystemSize_%d_OSRProportion_%0.3f_PAP_%d_gSS_%0.3f_Characteristic_%0.3f_RefugeAttract_%0.3f_GradientRange_%d_BreedingTime_%d"%
+                (Years,SystemSize,OSR_Proportion,Pesticide_Application_Period,Pesticide_SS,Characteristic,Refuge_Attract,GradientRange,BreedingTime))
+if FLATPESTICIDE:
+    SaveFileName += "_FlatPesticide"
+else:
+    SaveFileName += "_LinearPesticide"
+
+if not os.path.isdir(SaveFileName):
+    os.mkdir(SaveFileName)
+
+
+
+"""
 SaveFileName = ("Saved_Plots/OSRProportion_%0.3f_SystemSize_%d_Years_%d_InitialRRatio_"%(OSR_Proportion,SystemSize,Years)
                 + '{:.1E}'.format(R_Allele_Ratio) + "_gSS_%0.3f"%
                 (Pesticide_SS))
@@ -72,7 +90,7 @@ else:
     SaveFileName += "_LinearPesticide"
 if not os.path.isdir(SaveFileName):
     os.mkdir(SaveFileName)
-
+"""
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -106,14 +124,22 @@ for x in range(len(TM)):
 row_sums = MigrateList.sum(axis=1)
 TM = MigrateList / row_sums[:, np.newaxis]
 
-
 ##############################################################################
 ##############################################################################
 ##############################################################################
 #Initialise Population
 #Eigenvector calc
 Vals,Vects = np.linalg.eig(TM.T)
+
+Vals = Vals.real
+Vects=Vects.real
+
+idx = Vals.argsort()[::-1]   
+Vals = Vals[idx]
+Vects = Vects[:,idx]
+
 Vects = np.transpose(Vects)
+
 
 for k in range(len(Vects[0])):
     Vects[0][k] = np.absolute(Vects[0][k])               
@@ -162,9 +188,9 @@ RRPop_Prop_Daily.append(RRPop/Tot)
 
 R_Ratio_Prop_Daily.append((2*RRPop + SRPop)/(2*Tot))
 
-SSPop_Daily.append(SSPop)
-SRPop_Daily.append(SRPop)
-RRPop_Daily.append(RRPop)
+SSPop_Daily.append(copy.deepcopy(SSPop))
+SRPop_Daily.append(copy.deepcopy(SRPop))
+RRPop_Daily.append(copy.deepcopy(RRPop))
 
 
 
@@ -199,22 +225,6 @@ for y in range(Years):
                 RRPop[PesticideField==1] = FlatPesticide(RRPop,PesticideField,Pesticide_RR)
 
 
-            """
-            SSPop[PesticideField==1] = (SSPop[PesticideField==1] * (
-                                       1. - Pesticide_SS + 
-                                       (Pesticide_SS/Pesticide_Application_Period)
-                                       *d))
-
-            SRPop[PesticideField==1] = (SRPop[PesticideField==1] * (
-                                       1. - Pesticide_SR + 
-                                       (Pesticide_SR/Pesticide_Application_Period)
-                                       *d))
-            
-            RRPop[PesticideField==1] = (RRPop[PesticideField==1] * (
-                                       1. - Pesticide_RR + 
-                                       (Pesticide_RR/Pesticide_Application_Period)
-                                       *d))
-            """
             aftersssum = np.sum(2*RRPop + SRPop)/(2*(np.sum(SSPop+SRPop+RRPop)))
 
                         
@@ -237,7 +247,7 @@ for y in range(Years):
         ######################################################################
         ######################################################################
         #Breeding
-        if d == (Days/2):
+        if d == BreedingTime:
 
             print("BREED")
 
@@ -281,9 +291,9 @@ for y in range(Years):
         SRPop_Prop_Daily.append(SRPop/Tot)
         RRPop_Prop_Daily.append(RRPop/Tot)
         
-        SSPop_Daily.append(SSPop)
-        SRPop_Daily.append(SRPop)
-        RRPop_Daily.append(RRPop)
+        SSPop_Daily.append(copy.deepcopy(SSPop))
+        SRPop_Daily.append(copy.deepcopy(SRPop))
+        RRPop_Daily.append(copy.deepcopy(RRPop))
 
         R_Ratio_Prop_Daily.append((2*RRPop + SRPop)/(2*Tot))
 
@@ -321,8 +331,8 @@ print(sum(SSPop_Yearly[-1]))
 x = np.arange(len(R_Ratio_Yearly))
 y = np.log10(R_Ratio_Yearly)
 
-x_init = x[1:4]
-y_init = y[1:4]
+x_init = x[1:GradientRange]
+y_init = y[1:GradientRange]
 
 print("x_init, y_init: ",x_init,y_init)
 

@@ -126,13 +126,31 @@ for SystemSize in SystemSizes:
     #Initialise Population
     #Eigenvector calc
     Vals,Vects = np.linalg.eig(TM.T)
+
+    Vals = Vals.real
+    Vects=Vects.real
+
+    idx = Vals.argsort()[::-1]
+    Vals = Vals[idx]
+    Vects = Vects[:,idx]
+
+    Vects = np.transpose(Vects)
+
+
+    for k in range(len(Vects[0])):
+        Vects[0][k] = np.absolute(Vects[0][k])
+
+    EigenVect = (Vects[0]/sum(Vects[0])).real
+
+    """
+    Vals,Vects = np.linalg.eig(TM.T)
     Vects = np.transpose(Vects)
 
     for k in range(len(Vects[0])):
         Vects[0][k] = np.absolute(Vects[0][k])               
 
     EigenVect = (Vects[0]/sum(Vects[0])).real
-
+    """
 
 
     SSPop = EigenVect * (1.-R_Allele_Ratio)**2

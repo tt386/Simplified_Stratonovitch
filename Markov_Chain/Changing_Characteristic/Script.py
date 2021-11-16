@@ -7,6 +7,8 @@ import copy
 import os
 from scipy.signal import savgol_filter
 from scipy.signal import argrelextrema
+from fractions import Fraction
+
 starttime = time.time()
 
 
@@ -33,18 +35,17 @@ Days = 200
 
 R_Allele_Ratio = 1e-5
 
-SystemSizes = np.arange(10,400,10)
+#SystemSizes = np.arange(10,600,10)
 
-OSR_Proportions = np.arange(0.1,1.0,0.05)
+OSR_Proportion = 0.5
 
+Characteristics = np.linspace(0.5,5,10)
 
 #System Params
 FLATPESTICIDE = True
 
 OSR_Attract = 1.
-Refuge_Attract = 0.2
-
-Characteristic = 5
+Refuge_Attract = 1.#0.2         #############################################CHANGESCHANGED####################################################
 
 Pesticide_Application_Period = 10
 Pesticide_SS = 1#0.86
@@ -65,8 +66,8 @@ GradientRange = 2   #Smallest value is 2
 ##############################################################################
 ##############################################################################
 #SaveFileCreation
-SaveFileName = ("Saved_Plots/Years_%d_PAP_%d_gSS_%0.3f_GradientRange_%d_BreedingTime_%d"%
-                (Years,Pesticide_Application_Period,Pesticide_SS,GradientRange,BreedingTime))
+SaveFileName = ("Saved_Plots/Years_%d_PAP_%d_gSS_%0.3f_OSRProportion_%0.3f_RefugeAttract_%0.3f_GradientRange_%d_BreedingTime_%d"%
+                (Years,Pesticide_Application_Period,Pesticide_SS,OSR_Proportion,Refuge_Attract,GradientRange,BreedingTime))
 if FLATPESTICIDE:
     SaveFileName += "_FlatPesticide"
 else:
@@ -86,13 +87,26 @@ if not os.path.isdir(SaveFileName):
 MinPointyList = []
 MinPointxList = []
 
+MinCharacteristics = []
+
 SmoothedMinPointyList = []
 SmoothedMinPointxList = []
 
-SmoothedOSR_Proportions = []
+SmoothedCharacteristics = []
 
-for OSR_Proportion in OSR_Proportions:
+for Characteristic in Characteristics:
     InitialSlopeList = []
+
+    FractionRepresentation = Fraction(OSR_Proportion).limit_denominator()
+    print(FractionRepresentation)
+    Denominator = FractionRepresentation.denominator
+    print(Denominator)
+
+    while Denominator < 5:
+        Denominator *=2
+
+    SystemSizes = np.arange(Denominator,400,Denominator)
+
 
     for SystemSize in SystemSizes:
 
@@ -110,8 +124,11 @@ for OSR_Proportion in OSR_Proportions:
         #Transition Matrix
         Domain = np.ones(OSRWidth)*OSR_Attract
         Domain = np.pad(
+            Domain,(0,RefugeSize),'constant',constant_values=Refuge_Attract)
+        """
+        Domain = np.pad(
             Domain, int(RefugeSize/2),'constant',constant_values=Refuge_Attract)
-
+        """
         SystemSize = len(Domain)
 
         TM = np.zeros((len(Domain),len(Domain)))
@@ -119,8 +136,12 @@ for OSR_Proportion in OSR_Proportions:
 
         PesticideField = np.ones(OSRWidth)
         PesticideField = np.pad(
-            PesticideField,int(RefugeSize/2),'constant',constant_values=0)
+            PesticideField,(0,RefugeSize),'constant',constant_values=0)
 
+        """
+        PesticideField = np.pad(
+            PesticideField,int(RefugeSize/2),'constant',constant_values=0)
+        """
 
         #MigrationList
         #List that, if migration occurs, corresponds to migrating to a spot
@@ -144,14 +165,21 @@ for OSR_Proportion in OSR_Proportions:
         #Initialise Population
         #Eigenvector calc
         Vals,Vects = np.linalg.eig(TM.T)
+
+        Vals = Vals.real
+        Vects=Vects.real
+
+        idx = Vals.argsort()[::-1]
+        Vals = Vals[idx]
+        Vects = Vects[:,idx]
+
         Vects = np.transpose(Vects)
 
+
         for k in range(len(Vects[0])):
-            Vects[0][k] = np.absolute(Vects[0][k])               
+            Vects[0][k] = np.absolute(Vects[0][k])
 
         EigenVect = (Vects[0]/sum(Vects[0])).real
-
-
 
         SSPop = EigenVect * (1.-R_Allele_Ratio)**2
         SRPop = EigenVect * 2*R_Allele_Ratio*(1.-R_Allele_Ratio)
@@ -363,8 +391,12 @@ for OSR_Proportion in OSR_Proportions:
     #########################################################################
     #########################################################################
 
-    SmoothedInitialSlopeList =  savgol_filter(InitialSlopeList, 5, 3) # window size 51, polynomial order 3
-
+    #SmoothedInitialSlopeList =  savgol_filter(InitialSlopeList, 5, 3) # window size 51, polynomial order 3
+    windowwidth = int(0.25*len(InitialSlopeList))
+    if (windowwidth%2 == 0):
+            windowwidth +=1
+    print("Window width",windowwidth)
+    SmoothedInitialSlopeList =  savgol_filter(InitialSlopeList, windowwidth, 3) # window size half system, polynomial order 3
 
 
     minpoint = 0
@@ -372,6 +404,7 @@ for OSR_Proportion in OSR_Proportions:
         if (InitialSlopeList[i+1] > InitialSlopeList[i]) and (InitialSlopeList[i-1] > InitialSlopeList[i]):
             MinPointyList.append(InitialSlopeList[i])
             MinPointxList.append(SystemSizes[i])
+            MinCharacteristics.append(Characteristic)
             break
 
 
@@ -380,7 +413,7 @@ for OSR_Proportion in OSR_Proportions:
         SmoothedMinPointyList.append(SmoothedInitialSlopeList[minpointindex][-1])
         SmoothedMinPointxList.append(SystemSizes[minpointindex][-1])
 
-        SmoothedOSR_Proportions.append(OSR_Proportion)
+        SmoothedCharacteristics.append(Characteristic)
 
 
     #########################################################################
@@ -407,8 +440,8 @@ for OSR_Proportion in OSR_Proportions:
     plt.xlabel("System Width")
     plt.ylabel("Initial R Allele Slope")
 
-    plt.title("OSR Proportion: %0.3f"%(OSR_Proportion))
-    plt.savefig(SaveFileName + "/InitialSlopePlot_OSRProportion_%0.3f.png"%(OSR_Proportion)) 
+    plt.title("Characteristic: %0.3f"%(Characteristic))
+    plt.savefig(SaveFileName + "/InitialSlopePlot_Characteristic_%0.3f.png"%(Characteristic)) 
     plt.close()
 
 
@@ -416,20 +449,33 @@ for OSR_Proportion in OSR_Proportions:
     #########################################################################
     #########################################################################
 
+
+
+m, b = np.polyfit(SmoothedCharacteristics, SmoothedMinPointxList, 1)
+
+SmoothedCharacteristics = np.asarray(SmoothedCharacteristics)
+
 plt.figure(2)
 plt.plot(
-    OSR_Proportions,
+    MinCharacteristics,
     MinPointxList,
     label="Data")
 plt.plot(
-    SmoothedOSR_Proportions,
+    SmoothedCharacteristics,
     SmoothedMinPointxList,
     label="Smoothed")
 
+plt.plot(
+    SmoothedCharacteristics,
+    m * SmoothedCharacteristics + b,
+    label='Fitted, Slope %0.3f, Int %0.3f'%(m,b))
+
 plt.legend(loc='lower right')
 
+plt.title("OSR Proportion: %0.3f"%(OSR_Proportion))
+
 plt.grid()
-plt.xlabel("OSR Ratio")
+plt.xlabel("Characteristic Migration Length")
 plt.ylabel("System size of minimum point")
 
 #plt.title("OSR Proportion: %0.3f"%(OSR_Proportion))
@@ -441,19 +487,19 @@ plt.close()
 
 plt.figure(3)
 plt.plot(
-    OSR_Proportions,
+    MinCharacteristics,
     MinPointyList,
     label="Data")
 
 plt.plot(
-    SmoothedOSR_Proportions,
+    SmoothedCharacteristics,
     SmoothedMinPointyList,
     label="Smoothed")
 
 plt.legend(loc='lower right')
 
 plt.grid()
-plt.xlabel("OSR Ratio")
+plt.xlabel("Characteristic Migration Length")
 plt.ylabel("Min Point Slope Magnitude")
 
 #plt.title("OSR Proportion: %0.3f"%(OSR_Proportion))

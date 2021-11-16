@@ -17,7 +17,7 @@ starttime = time.time()
 Days = 200
 
 SystemSizes = np.arange(10,400,10)
-OSR_Proportions = np.arange(0.1,1.0,0.05)
+OSR_Proportions = np.arange(0.0,1.05,0.05)
 
 
 
@@ -47,7 +47,7 @@ if not os.path.isdir(SaveFileName):
 
 UpperBoundIntersect = []
 LowerBoundIntersect = []
-
+UpperBound_diffIntersect = []
 
 for OSR_Proportion in OSR_Proportions:
     print("OSR Proportion:",OSR_Proportion)
@@ -111,32 +111,38 @@ for OSR_Proportion in OSR_Proportions:
         ##############################################################################
         #Initialise Population
         #Eigenvector calc
-        EigenVals,EigenVects = np.linalg.eig(TM.T)
+        Vals,Vects = np.linalg.eig(TM.T)
 
-        EigenVals = sorted(EigenVals,reverse=True)
+        Vals = Vals.real
+        Vects=Vects.real
 
-        EigenVects = np.transpose(EigenVects)
+        idx = Vals.argsort()[::-1]
+        Vals = Vals[idx]
+        Vects = Vects[:,idx]
 
-        for k in range(len(EigenVects[0])):
-            EigenVects[0][k] = np.absolute(EigenVects[0][k])
+        Vects = np.transpose(Vects)
 
-        EigenVect = (EigenVects[0]/sum(EigenVects[0])).real
 
-     
-        epsilon = 0.25
+        for k in range(len(Vects[0])):
+            Vects[0][k] = np.absolute(Vects[0][k])
+
+        EigenVect = (Vects[0]/sum(Vects[0])).real
+ 
+
+        epsilon = 0.25#min(EigenVect)#0.25
         
-        t_min = (EigenVals[1]/(1-EigenVals[1])) * np.log(1/(2*epsilon))
+        t_min = (Vals[1]/(1-Vals[1])) * np.log(1/(2*epsilon))
         
-        t_max = (1/(1-EigenVals[1])) * np.log(1/(min(EigenVects[0])*epsilon))
+        t_max = (1/(1-Vals[1])) * np.log(1/(min(EigenVect)*epsilon))
         
         
         UpperBoundList.append(t_max)
         LowerBoundList.append(t_min)
         
-        UpperBoundList_diff.append((1/(1-EigenVals[1]))*np.log(1/(2*epsilon*np.sqrt(min(EigenVects[0])))))
+        UpperBoundList_diff.append((1/(1-Vals[1]))*np.log(1/(2*epsilon*np.sqrt(min(EigenVect)))))
         
-        UpperBoundList_levin.append((1/(1-EigenVals[1])) * np.log(4/min(EigenVects[0])))
-        LowerBoundList_levin.append((EigenVals[1]/(1-EigenVals[1])) * np.log(2))
+        UpperBoundList_levin.append((1/(1-Vals[1])) * np.log(4/min(EigenVect)))
+        LowerBoundList_levin.append((Vals[1]/(1-Vals[1])) * np.log(2))
         
 
 
@@ -144,21 +150,22 @@ for OSR_Proportion in OSR_Proportions:
 
 
 
-    for i in range(len(UpperBoundList)):
+    for i in range(len(SystemSizes)):
         if (UpperBoundList[i] < Days) and (UpperBoundList[i+1] > Days):
-            UpperBoundIntersect.append(UpperBoundList[i])
+            UpperBoundIntersect.append(SystemSizes[i])
 
         if (LowerBoundList[i] < Days) and (LowerBoundList[i+1] > Days):
-            LowerBoundIntersect.append(LowerBoundList[i])
+            LowerBoundIntersect.append(SystemSizes[i])
 
 
-
+        if (UpperBoundList_diff[i] < Days) and (UpperBoundList_diff[i+1] > Days):
+            UpperBound_diffIntersect.append(SystemSizes[i])
 
 
     plt.figure(1)
-    plt.plot(SystemSizes,UpperBoundList_diff,label='Different Def Upper')
-    plt.plot(SystemSizes,UpperBoundList,label='Upper Bound')
-    plt.plot(SystemSizes,LowerBoundList,label='Lower Bound')
+    plt.plot(SystemSizes,UpperBoundList_diff,'b',label='Different Def Upper')
+    plt.plot(SystemSizes,UpperBoundList,'r',label='Upper Bound')
+    plt.plot(SystemSizes,LowerBoundList,'g',label='Lower Bound')
     #plt.plot(OSRWidthList,LowerBoundList_levin,label='Levin Lower')
     #plt.plot(OSRWidthList,UpperBoundList_levin,label='Levin Upper')
 
@@ -177,8 +184,9 @@ for OSR_Proportion in OSR_Proportions:
 
 
 plt.figure(2)
-plt.plot(OSR_Proportions,UpperBoundIntersect,label='Upper Bound')
-plt.plot(OSR_Proportions,LowerBoundIntersect,label='Lower Bound')
+plt.plot(OSR_Proportions,UpperBoundIntersect,'b',label='Upper Bound')
+plt.plot(OSR_Proportions,UpperBound_diffIntersect,'r',label='Upper Bound Diff')
+plt.plot(OSR_Proportions,LowerBoundIntersect,'g',label='Lower Bound')
 
 plt.legend(loc='lower right')
 
