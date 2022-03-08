@@ -10,19 +10,22 @@ import time
 import copy
 import sys
 
+from Params import *
+
 starttime = time.time()
 ##############################################################################
 ##############################################################################
 ##############################################################################
 #For the very first step
 def A(n,SRatio):
+    """Returns the Fourier Coefficients for the Dicichlet Heat Eqn"""
     if n%2 == 0:
         return 0
     else:
         return (1-SRatio)*4/(np.pi * n)
 
 def u1(x,t,l,k,Phi):
-
+    """Numerical result for Dirichlet Heat Eqn"""
     if  (x < l):
         tot = 0
         for n in range(1,100):
@@ -35,9 +38,11 @@ def u1(x,t,l,k,Phi):
 ##############################################################################
 #For the second step
 def A0(L,init,xlist):
+    """Returns the Fourier Coefficients for the Periodic Heat Eqn"""
     return (1/(2*L))*integrate.simps(init, xlist)
 
 def An(n,init,xlist,L):
+    """Returns the Fourier Coefficients for the Periodic Heat Eqn"""
     tempinit = np.asarray(copy.copy(init))
 
     for x in range(len(xlist)):
@@ -46,6 +51,7 @@ def An(n,init,xlist,L):
     return (1/L)*integrate.simps(tempinit, xlist)
 
 def Bn(n,init,xlist,L):
+    """Returns the Fourier Coefficients for the Periodic Heat Eqn"""
     tempinit = np.asarray(copy.copy(init))
 
     for x in range(len(xlist)):
@@ -54,7 +60,7 @@ def Bn(n,init,xlist,L):
     return (1/L)*integrate.simps(tempinit, xlist)
 
 def u2(t,L,k,init,xlist):
-
+    """Numerical result for Periodic Heat Eqn"""
     A0Val = A0(L,init,xlist)
     AnList = []
     BnList = []
@@ -78,39 +84,15 @@ def u2(t,L,k,init,xlist):
 ##############################################################################
 ##############################################################################
 ##############################################################################
-Year = 0.1#200#0.1#200
-PAP = (Year/2)
-T = Year - PAP
-
-Phi = 1e-5
-
-
-k = 2e-5#1#2e-5#1
-dx =1e-4#1 #1e-4#1
-dt =1e-4#1 #1e-4#1
-
-SystemSizeList = np.arange(0.001,0.1,0.001)#np.arange(1,100,2)#np.arange(0.01,0.5,0.1)#np.arange(1,100,2)
-OSR_ProportionList = np.arange(0.1,0.9,0.05)
-
-
-
-
-#SaveFile
-SaveDirName = ("Saved_Plots/" +
-    "PAP_%0.3f_Year_%3f_Characteristic_"%(PAP,Year) + '{:.1E}'.format(k) +
-    "_MaxSize_%0.3f_dx_"%(SystemSizeList[-1]) +
-    '{:.1E}'.format(dx)+ "_dt_"+'{:.1E}'.format(dt) + "_InitialRRatio_" +
-    '{:.1E}'.format(Phi))
-
-if not os.path.isdir(SaveDirName):
-    os.mkdir(SaveDirName)
-    print("Created Directory")
-
+#SlopeMatrix: matrix of slope values
+SlopeMatrix = np.zeros((len(CharacteristicList),len(SystemSizeList)))
+#RawMatrix = np.zeros((len(CharacteristicList),len(SystemSizeList)))
 ##############################################################################
 ##############################################################################
 ##############################################################################
-MinimumList = []
-for OSR_Proportion in OSR_ProportionList:
+
+for i in range(len(CharacteristicList)):
+    k = CharacteristicList[i]
     #print("OSR Proportion:",OSR_Proportion)
 
     Refuge_Proportion = 1- OSR_Proportion
@@ -118,54 +100,47 @@ for OSR_Proportion in OSR_ProportionList:
 
     slopelist = []
 
-    for SystemSize in SystemSizeList:
-        print("(OSR Ratio,System Size) =",OSR_Proportion,SystemSize)
+    for j in range(len(SystemSizeList)):
+        SystemSize = SystemSizeList[j]
+        print("(Characteristic,System Size) =",k,SystemSize)
+        #Create system
         OSRWidth = (1-Refuge_Proportion)*SystemSize
         RefugeWidth = Refuge_Proportion*SystemSize
-
+        xlist = np.arange(int(SystemSize/dx))*dx
+        ylist = []
 
 
         #Step 1
         #Solve the analytical result for the system of Refuge with Dirichlet
         #Boundary Conditions
-        xlist = np.arange(int(SystemSize/dx))*dx
-        ylist = []
         for x in range(len(xlist)):
             ylist.append(u1(xlist[x],PAP,RefugeWidth,k,Phi))
 
+        #Find area, similar to the number of susceptible pests
         step1area = integrate.simps(ylist,xlist)
 
 
-        plt.figure()
-        plt.plot(xlist,ylist,label='1st Step')
-
-
-
+        #Steo 2
+        #Solve the analytical result for the system fo Refuge, OSR and 
+        #Periodic Boundary conditions
         L = SystemSize/2
-        #print("L",L)
         yprimelist = np.asarray(u2(T,L,k,ylist,xlist))
 
+        #Ensure no negative values
         yprimelist[yprimelist<0] = 0
 
+        #RawMatrix[i][j] = (ylist,yprimelist)
+
+        #Again find area, similar to the number of susceptible pests
         step2area = integrate.simps(yprimelist,xlist)
         
         print("1st area / 2nd area:",step1area/step2area)
 
 
-        plt.plot(xlist,yprimelist,label='2nd Step')
-
-        plt.xlabel("Xpos")
-        plt.ylabel("S Population")
-        plt.legend(loc='upper right')
-        plt.grid()
-        plt.savefig(SaveDirName + ("/OSR_Proportion_%0.3f_SystemSize_%0.3f.png"%
-            (OSR_Proportion,SystemSize)))
-        plt.close()
-
         ##########################################################################
         ##########################################################################
         InitialCondition = np.ones(int(SystemSize/dx))*Phi
-        InitialTot = np.sum(InitialCondition)
+        InitialTot = np.sum(InitialCondition)#MAYBE I SHOULD INTEGRATE
 
         RatioAfterBreeding = InitialCondition/(InitialCondition+yprimelist)
         np.set_printoptions(threshold=sys.maxsize)
@@ -176,92 +151,30 @@ for OSR_Proportion in OSR_ProportionList:
         print(InitialTot)
         print(FinalTot)
 
+        SlopeMatrix[i][j] = np.log(FinalTot)- np.log(InitialTot)
 
-        slopelist.append(np.log(FinalTot)- np.log(InitialTot))        
-
-        """   
-        InitialCondition = np.ones(int(SystemSize/dx))*Phi
-
-        InitialIntegral = integrate.simps(InitialCondition,xlist)
-
-        InitialRatio = InitialIntegral/integrate.simps(np.ones(int(SystemSize/dx)),xlist)
-
-        FinalRatio = InitialIntegral/(InitialIntegral + step2area)
-
-        
-        slopelist.append(np.log(FinalRatio) - np.log(InitialRatio))
-        """
-        
-        """
-        RRatioList = []
-        SRatioList = []
-        for i in range(len(ylist)):
-            RRatioList.append(Phi/(yprimelist[i]+Phi))
-            SRatioList.append(1-RRatioList[-1])
-        
-        
-        TotalRRatio = sum(RRatioList)/SystemSize    
-        #print("SystemSize, TotalRRatio",SystemSize,TotalRRatio)
-        
-        R_Ratio_List.append(TotalRRatio)
-        
-        logslope = np.log(TotalRRatio)-np.log(Phi)
-        #print("Log of slope",logslope)
-        slopelist.append(logslope)
-        """
         ##########################################################################
         ##########################################################################
         ##########################################################################
-            
-            
-    plt.figure()
-    plt.semilogy(SystemSizeList,slopelist)
-
-    plt.xlabel("System Size")
-    plt.ylabel("Log of initial yearly R Allele Slope")
-
-    plt.title("OSR Proportion %0.3f"%(OSR_Proportion))
-    plt.grid()
-    plt.savefig(SaveDirName + 
-        "/Minima_Curve_OSRProportion_%0.3f.png"%(OSR_Proportion))
-    plt.close()
-                   
-
-
-    #########################################################################
-    #########################################################################
-    #########################################################################
-    #Find the minumum of the curve
-    minRAllele = 10000000
-    minSystemSize = -1
-    for i in range(len(slopelist)):
-        if slopelist[i] < minRAllele:
-            minRAllele = slopelist[i]
-            minSystemSize = SystemSizeList[i]
-
-    MinimumList.append(minSystemSize)
-    print("minRAllele:",minRAllele)
-    print("minSystemSize",minSystemSize)
-    """
-
-        if ((R_Ratio_List[i-1] > R_Ratio_List[i]) and 
-                (R_Ratio_List[i+1] > R_Ratio_List[i])):
-            MinimumList.append(SystemSizeList[i])
-            break
-    """
-    
-plt.figure()
-plt.plot(OSR_ProportionList,MinimumList)
-
-plt.xlabel("OSR Proportion")
-plt.ylabel("System Size at Minimum")
-
-plt.title("PAP: %d, Characteristic: %0.3f"%(PAP,k))
-plt.grid()
-plt.savefig(SaveDirName + "/ComparingMinima.png")
-
-
 
 endtime = time.time()
 
 print("Time taken:",endtime-starttime)
+
+timetaken = endtime-starttime
+
+##############################################
+###Output files###############################
+##############################################
+OutputDatafilename = SaveDirName + '/datafile.npz'
+np.savez(OutputDatafilename,
+    PAP=PAP,
+    Year=Year,
+    Phi=Phi,
+    OSR_Proportion=OSR_Proportion,
+    SlopeMatrix=SlopeMatrix,
+    #RawMatrix,
+    CharacteristicList=CharacteristicList,
+    SystemSizeList=SystemSizeList,
+    timetaken=timetaken)
+

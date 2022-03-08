@@ -18,7 +18,7 @@ starttime = time.time()
 #Variables
 
 YearLength = 0.1
-SystemLengths = np.arange(0.01,0.2,0.002)
+SystemLengths = np.arange(0.005,0.2,0.002)
 
 OSR_RatioList = np.arange(0.1,0.9,0.05)
 
@@ -41,7 +41,8 @@ F = Characteristic * (dt)/(dx)**2
 #SaveFile
 SaveFileName = ("Saved_Plots/InitialRRatio_"
                 + '{:.1E}'.format(R_Ratio) + "_MigrationsPerDay_%d"%
-                (MigrationsPerDay))
+                (MigrationsPerDay) + "_dx_" + '{:.1E}'.format(dx)+
+                "_dt_"+'{:.1E}'.format(dt))
 
 if not os.path.isdir(SaveFileName):
     os.mkdir(SaveFileName)
@@ -97,7 +98,6 @@ for OSR_Ratio in OSR_RatioList:
         R_Breeding = R_Domain/(R_Domain+S_Domain)
         S_Breeding = S_Domain/(R_Domain+S_Domain)
         
-        TotalRRatio = np.sum(R_Breeding)/(np.sum(R_Breeding))
         
         TotalR = np.sum(R_Domain/(R_Domain+S_Domain))
         

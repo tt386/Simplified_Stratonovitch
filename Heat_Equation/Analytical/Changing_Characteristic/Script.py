@@ -82,14 +82,19 @@ Year = 0.1#200#0.1#200
 PAP = (Year/2)
 T = Year - PAP
 
-Phi = 1e-5
+Phi = 1e-5 #Initial Conditions
 
 
-k = 2e-5#1#2e-5#1
+OSR_Proportion = 0.5
+
+#k = 2e-5#1#2e-5#1
 dx =1e-4#1 #1e-4#1
 dt =1e-4#1 #1e-4#1
 
-SystemSizeList = np.arange(0.001,0.1,0.001)#np.arange(1,100,2)#np.arange(0.01,0.5,0.1)#np.arange(1,100,2)
+SystemSizeList = np.arange(0.001,0.01,0.0001)#np.arange(1,100,2)#np.arange(0.01,0.5,0.1)#np.arange(1,100,2)
+
+CharacteristicList = np.arange(1e-6,2e-5,1e-6)
+
 OSR_ProportionList = np.arange(0.1,0.9,0.05)
 
 
@@ -97,8 +102,8 @@ OSR_ProportionList = np.arange(0.1,0.9,0.05)
 
 #SaveFile
 SaveDirName = ("Saved_Plots/" +
-    "PAP_%0.3f_Year_%3f_Characteristic_"%(PAP,Year) + '{:.1E}'.format(k) +
-    "_MaxSize_%0.3f_dx_"%(SystemSizeList[-1]) +
+    "PAP_%0.3f_Year_%3f_OSR_Proportion_%0.3f"%(PAP,Year,OSR_Proportion) + 
+    "_MaxSize_%0.5f_dx_"%(SystemSizeList[-1]) +
     '{:.1E}'.format(dx)+ "_dt_"+'{:.1E}'.format(dt) + "_InitialRRatio_" +
     '{:.1E}'.format(Phi))
 
@@ -110,7 +115,7 @@ if not os.path.isdir(SaveDirName):
 ##############################################################################
 ##############################################################################
 MinimumList = []
-for OSR_Proportion in OSR_ProportionList:
+for k in CharacteristicList:
     #print("OSR Proportion:",OSR_Proportion)
 
     Refuge_Proportion = 1- OSR_Proportion
@@ -119,7 +124,7 @@ for OSR_Proportion in OSR_ProportionList:
     slopelist = []
 
     for SystemSize in SystemSizeList:
-        print("(OSR Ratio,System Size) =",OSR_Proportion,SystemSize)
+        print("(Characteristic,System Size) =",k,SystemSize)
         OSRWidth = (1-Refuge_Proportion)*SystemSize
         RefugeWidth = Refuge_Proportion*SystemSize
 
@@ -158,8 +163,8 @@ for OSR_Proportion in OSR_ProportionList:
         plt.ylabel("S Population")
         plt.legend(loc='upper right')
         plt.grid()
-        plt.savefig(SaveDirName + ("/OSR_Proportion_%0.3f_SystemSize_%0.3f.png"%
-            (OSR_Proportion,SystemSize)))
+        plt.savefig(SaveDirName + ("/Characteristic_" + '{:.1E}'.format(k) + 
+            "_SystemSize_%0.3f.png"%(SystemSize)))
         plt.close()
 
         ##########################################################################
@@ -220,10 +225,10 @@ for OSR_Proportion in OSR_ProportionList:
     plt.xlabel("System Size")
     plt.ylabel("Log of initial yearly R Allele Slope")
 
-    plt.title("OSR Proportion %0.3f"%(OSR_Proportion))
+    plt.title("Characteristic " + '{:.1E}'.format(k))
     plt.grid()
     plt.savefig(SaveDirName + 
-        "/Minima_Curve_OSRProportion_%0.3f.png"%(OSR_Proportion))
+        "/Minima_Curve_Characteristic_" + '{:.1E}'.format(k) + ".png")
     plt.close()
                    
 
@@ -251,12 +256,12 @@ for OSR_Proportion in OSR_ProportionList:
     """
     
 plt.figure()
-plt.plot(OSR_ProportionList,MinimumList)
+plt.plot(CharacteristicList,MinimumList)
 
-plt.xlabel("OSR Proportion")
+plt.xlabel("Characteristic Migration Scale")
 plt.ylabel("System Size at Minimum")
 
-plt.title("PAP: %d, Characteristic: %0.3f"%(PAP,k))
+plt.title("PAP: %d, Characteristic "%(PAP) + '{:.1E}'.format(k))
 plt.grid()
 plt.savefig(SaveDirName + "/ComparingMinima.png")
 
