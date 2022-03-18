@@ -188,7 +188,7 @@ for c in range(len(SlopeMatrix)):
     slopelist = np.exp(slopelist + np.log(Phi))
 
     plt.figure()
-    plt.loglog(etaList,slopelist,label="Data")
+    plt.loglog(etaList,slopelist,label="Min ETA: %0.3f"%(etaList[np.where(slopelist==min(slopelist))[0][0]]))
 
     plt.legend(loc='lower left')
 
