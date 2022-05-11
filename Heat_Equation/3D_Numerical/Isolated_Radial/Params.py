@@ -5,7 +5,7 @@ import shutil
 
 dr = 0.01
 
-LogMaxEta = 1
+LogMaxEta = 0
 LogMinEta = -4
 EtaNum = 200
 etalist = np.logspace(LogMinEta,LogMaxEta,EtaNum)#100

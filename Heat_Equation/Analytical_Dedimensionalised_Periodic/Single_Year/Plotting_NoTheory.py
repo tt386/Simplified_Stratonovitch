@@ -2,6 +2,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pyplot as plt
 
+plt.rcParams['text.usetex'] = True
+
 import numpy as np
 import time
 
@@ -187,6 +189,10 @@ for c in range(len(SlopeMatrix)):
     #Change from 'Slope' to endstate number
     slopelist = np.exp(slopelist + np.log(Phi))
 
+    """
+    #Apply this transformation to capture the total number of 
+    slopelist = slopelist/etaList
+    """
     plt.figure()
     plt.loglog(etaList,slopelist,label="Min ETA: %0.3f"%(etaList[np.where(slopelist==min(slopelist))[0][0]]))
 
@@ -201,6 +207,29 @@ for c in range(len(SlopeMatrix)):
         "/Minima_Curve_rho_" + '{:.1E}'.format(Refuge_Proportion) + ".png")
     plt.close()
     
+
+    #Plot the Minima but with L considered
+    plt.figure()
+    plt.loglog(1/np.sqrt(etaList),slopelist,
+        label="Min L: %0.3f"%((1/np.sqrt(etaList))[slopelist.argmin()]))
+
+    #plt.loglog(1/np.sqrt(etaList),SmoothedData,'k--',label='Smoothed')
+
+    plt.legend(loc='lower right')
+
+    plt.xlabel("Size of Repeating Sub-Unit (l)")
+    plt.ylabel(r"\# New Resistant per Repeating Sub-Unit (ie per crop)")
+
+    plt.grid()
+
+    plt.title(r"Wild Proportion $\omega$: " + '{:.1E}'.format(Refuge_Proportion))
+
+    plt.savefig(NoTheoryDir +
+        "/LengthMinima_Curve_rho_" + '{:.1E}'.format(Refuge_Proportion) + ".png")
+    plt.close()
+
+
+
 
     #Plot of slopes of the curves
     plt.figure()
@@ -326,6 +355,26 @@ plt.xlim(0.3,1)
 plt.savefig(NoTheoryDir + "/LowerKink_ChangingRho.png")
 plt.close()
 
+
+
+######################
+plt.figure()
+plt.loglog(x,1/np.sqrt(y))
+plt.loglog(x,1/np.sqrt(theorykinks),"--",label='Theory')
+
+plt.legend(loc='upper left',fontsize='20')
+plt.grid()
+plt.xlabel(r"$1-\omega$",fontsize=30)
+plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20,rotation=45)
+
+plt.tight_layout()
+
+plt.xlim(0.3,1)
+plt.savefig(NoTheoryDir + "/LengthLowerKink_ChangingRho.png")
+plt.close()
 ############################################################################
 ############################################################################
 ############################################################################
@@ -353,7 +402,24 @@ plt.title("How Second order min changes with rho")
 plt.savefig(NoTheoryDir + "/UpperKink_ChangingRho.png")
 plt.close()
 
+##############################################################
 
+plt.figure()
+plt.loglog(x,1/np.sqrt(y))
+plt.loglog(x,1/np.sqrt(theorykinks),"--",label='Theory')
+
+plt.legend(loc='upper left',fontsize='20')
+plt.grid()
+plt.xlabel(r"$\omega$",fontsize=30)
+plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+
+plt.tight_layout()
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20,rotation=45)
+
+plt.savefig(NoTheoryDir + "/LengthUpperKink_ChangingRho.png")
+plt.close()
 ############################################################################
 ############################################################################
 ############################################################################
@@ -410,6 +476,7 @@ testtheorylist = ((rhoList**2 * (1-rhoList)**2) / (16*np.pi**2 * PAP*t)*
                     np.log(8*rhoList/(Phi*np.pi**2))                    
                 )**0.5
 
+SecondTheory = (-1 + np.sqrt(1+PAP*np.pi**2 * (1-rhoList)/((1-PAP)*rhoList**2)))/(4*PAP*np.pi**2/rhoList**2)
 """
 MAG = 1e5
 def fitfunc(x,a,b,c,d):
@@ -423,7 +490,11 @@ popt, pcov = curve_fit(fitfunc, MAG*np.asarray(rhoList), MAG*np.asarray(MinimumL
 
 plt.figure()
 plt.loglog(rhoList,MinimumList,label='data')#,label="Slope = %0.3f"%(result.slope))
-plt.loglog(rhoList,testtheorylist,label='Theory')
+
+plt.loglog(rhoList,testtheorylist,label='Theory') #Decent theory same order of magnitude
+
+plt.loglog(rhoList,SecondTheory,label='Theory 2')
+
 #plt.loglog(rhoList,fitfunc(MAG*rhoList,*popt)/MAG,label='Theory Fit')
 plt.legend(loc='lower left')
 
@@ -470,8 +541,8 @@ fig = plt.figure(2)
 ax = fig.add_subplot(111)
 ax.scatter(HeatMap_rhoList,HeatMap_etaList,c=HeatMap_slopeList,s=150,cmap='coolwarm')
 
-plt.plot(np.log(BoundRhoList),np.log(UpperKink),label='Upper Kink')
-plt.plot(np.log(BoundRhoList),np.log(LowerKink),label='Lower Kink')
+plt.plot(np.log(BoundRhoList),np.log(UpperKink),'k',label='Upper Kink')
+plt.plot(np.log(BoundRhoList),np.log(LowerKink),'k--',label='Lower Kink')
 
 #ax.set_yscale("log")
 #ax.set_xscale("log")

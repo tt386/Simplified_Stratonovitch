@@ -2,6 +2,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pyplot as plt
 
+plt.rcParams['text.usetex'] = True
+
 import numpy as np
 import time
 
@@ -123,7 +125,9 @@ for i in dirlist:
         plt.semilogy(xlist,rlist/(rlist+Yearylist)-rlist,label='Integrand')
         plt.legend(loc='upper left')
         plt.title("Diffusion Coeff: "+ '{0:.5f}'.format(eta))
-        
+       
+        plt.xlim(5-eta,5+eta)
+ 
         plt.xlabel("Space")
         plt.grid()
         plt.savefig(i + "/Eta_" + '{0:.5f}'.format(eta) + ".png")
@@ -151,32 +155,71 @@ for c in range(len(SlopeMatrix)):
 
     #smooth = savgol_filter(slopelist,51,10)
     plt.figure()
-    plt.loglog(1/np.sqrt(etalist),slopelist,
-        label="Min L: %0.3f"%((1/np.sqrt(etalist))[slopelist.argmin()]))
+    Smoothed = savgol_filter(slopelist, 51, 3)
 
-    """
-    #Add markers at minima points
-    leftindex = np.where(etalist==LeftMostMinima[c])[0]
-    rightindex = np.where(etalist==RightMostMinima[c])[0]
-    print("leftindex",leftindex)
-    if len(leftindex) > 0:
-        plt.loglog(LeftMostMinima[c],slopelist[leftindex],"ko")
-        plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
-    """
 
-    plt.legend(loc='lower right')
+    plt.loglog(1/np.sqrt(etalist),slopelist)
 
-    plt.xlabel("Size of Isolated Field (L)")
-    plt.ylabel("# New Resistant per unit Field Size (ie per crop)")
+    plt.loglog(1/np.sqrt(etalist),Smoothed,'--k')
+
+    plt.scatter((1/np.sqrt(etalist))[slopelist.argmin()],min(slopelist),
+        c="k",
+        label=r"$\frac{L}{\sqrt{DY}}$ = %0.3f"%((1/np.sqrt(etalist))[slopelist.argmin()]))
+
+    plt.legend(loc='upper left',fontsize=20)
+
+    plt.xlabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+    plt.ylabel(r"$\Delta R$",fontsize=30)
+
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20,rotation=45)
 
     plt.grid()
 
-    plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
+    #plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
+    plt.tight_layout()
+
 
     plt.savefig(str(args.directory) + 
-        "/Minima_Curve_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
+        "/Minima_Curve.png")
     plt.savefig(str(args.directory) + "/Frame_" + str(c).zfill(5) + ".png")
     plt.close()
+
+
+    ########################################################################
+    plt.figure()
+
+    SecondSmoothed = abs(np.gradient(np.gradient(Smoothed,1/np.sqrt(etalist)),1/np.sqrt(etalist)))
+
+    SecondOrder = abs(np.gradient(np.gradient(slopelist,1/np.sqrt(etalist)),1/np.sqrt(etalist)))
+
+    plt.loglog(1/np.sqrt(etalist),SecondOrder)
+    plt.loglog(1/np.sqrt(etalist),SecondSmoothed,'--k')
+    """
+    plt.scatter((1/np.sqrt(etalist))[slopelist.argmin()],min(slopelist),
+        c="k",
+        label=r"$\frac{L}{\sqrt{DY}}$ = %0.3f"%((1/np.sqrt(etalist))[slopelist.argmin()]))
+    """
+    plt.legend(loc='upper left',fontsize=20)
+
+    plt.xlabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+    plt.ylabel(r"$\frac{\partial^2}{\partial L^2}\Delta R$",fontsize=30)
+
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20,rotation=45)
+
+    plt.grid()
+
+    #plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
+    plt.tight_layout()
+
+
+    plt.savefig(str(args.directory) +
+        "/SecondOrder_Curve.png")
+    plt.close()
+    ########################################################################
+
+
 
 
     print("L:",list(1/np.sqrt(etalist)))
@@ -186,15 +229,6 @@ for c in range(len(SlopeMatrix)):
     plt.figure()
     plt.loglog(1/np.sqrt(etalist),slopelist/np.sqrt(etalist))
 
-    """
-    #Add markers at minima points
-    leftindex = np.where(etalist==LeftMostMinima[c])[0]
-    rightindex = np.where(etalist==RightMostMinima[c])[0]
-    print("leftindex",leftindex)
-    if len(leftindex) > 0:
-        plt.loglog(LeftMostMinima[c],slopelist[leftindex],"ko")
-        plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
-    """
     plt.xlabel("Size of Isolated Field (L)")
     plt.ylabel("Total # New Resistant")
 
@@ -203,7 +237,7 @@ for c in range(len(SlopeMatrix)):
     plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
 
     plt.savefig(str(args.directory) +
-        "/Minima_Curve_TOTAL_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
+        "/Minima_Curve_TOTAL.png")
     plt.close()
 
     ################################
@@ -216,15 +250,6 @@ for c in range(len(SlopeMatrix)):
     plt.figure()
     plt.loglog(1/np.sqrt(etalist),slopelist/np.sqrt(etalist) * Num)
 
-    """
-    #Add markers at minima points
-    leftindex = np.where(etalist==LeftMostMinima[c])[0]
-    rightindex = np.where(etalist==RightMostMinima[c])[0]
-    print("leftindex",leftindex)
-    if len(leftindex) > 0:
-        plt.loglog(LeftMostMinima[c],slopelist[leftindex],"ko")
-        plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
-    """
     plt.xlabel("Size of Isolated Field (L)")
     plt.ylabel("Total # New Resistant if we split Massive OSR into n regions size L")
 
@@ -233,7 +258,7 @@ for c in range(len(SlopeMatrix)):
     plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
 
     plt.savefig(str(args.directory) +
-        "/Minima_Curve_TOTALCONSTRAINED_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
+        "/Minima_Curve_TOTALCONSTRAINED.png")
     plt.close()
 
 
@@ -268,18 +293,18 @@ RightMostMinimaTheory = ((RightMostMinima[0]/(OSRNum)**2)
 print("Leftmost: ",LeftMostMinima)
 plt.figure()
 
-plt.plot(OSRSeparationList,1/np.sqrt(LeftMostMinima),label='Leftmost')
-plt.plot(OSRSeparationList,1/np.sqrt(RightMostMinima),label='Rightmost')
+plt.plot(OSRSeparationList,LeftMostMinima,label='Leftmost')
+plt.plot(OSRSeparationList,RightMostMinima,label='Rightmost')
 
 if OSRSeparationList[0] == 0:
-    plt.plot(OSRSeparationList,1/np.sqrt(RightMostMinimaTheory),"--",label='RightMost Theory')
+    plt.plot(OSRSeparationList,RightMostMinimaTheory,"--",label='RightMost Theory')
 
 plt.legend(loc='upper center')
 
 plt.grid()
 
 plt.xlabel("OSR Separation Width")
-plt.ylabel("L value of Minima")
+plt.ylabel("ETA value of Minima")
 
 plt.title("Number of OSR: %d"%(OSRNum))
 

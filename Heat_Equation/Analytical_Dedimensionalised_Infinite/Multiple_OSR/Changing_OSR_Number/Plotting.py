@@ -144,7 +144,7 @@ for c in range(len(SlopeMatrix)):
     OSRNum = OSRNumList[c]
 
     plt.figure()
-    plt.loglog(etalist,slopelist)
+    plt.loglog(etalist,slopelist/np.sqrt(etalist))
 
 
     #Add markers at minima points

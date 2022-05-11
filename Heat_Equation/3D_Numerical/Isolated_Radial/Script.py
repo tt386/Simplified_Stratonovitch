@@ -66,12 +66,20 @@ for eta in etalist:
         #print("Time:",timelist[t])
         
         L = len(System)
+        prod = System * jlist
+
         System[1:L-1] += (eta*dt/dr**2) * (
+            np.roll(prod,-1) - 2*prod + np.roll(prod,1))[1:L-1]/jlist[1:L-1]
+
+        System[0] += (eta*dt/dr**2) * (2*prod[1] - 2*prod[0])
+         
+        """
+                        (eta*dt/dr**2) * (
             (np.roll(System,-1) - System)[1:L-1]/jlist[1:L-1] + 
             (np.roll(System,1) - 2*System + np.roll(System,-1))[1:L-1])
         
         System[0] += (eta*dt/dr**2) * (2*System[1] - 2*System[0])
-        
+        """
         if timelist[t] < PAP:
             System *= CSystem
         
@@ -84,7 +92,7 @@ for eta in etalist:
     Integrand = []
     RatioList = Phi/(Phi+System) - Phi
     for i in range(len(System)):
-        Integrand.append(2*np.pi * (i*dr) * RatioList[i])
+        Integrand.append(4*np.pi * (i*dr)**2 * RatioList[i])
         
     print("Eta:",eta,"NextYearRatio:",simps(Integrand,np.arange(int(Dimension))*dr))
     IntegralList.append(simps(Integrand,np.arange(int(Dimension))*dr))

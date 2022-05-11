@@ -98,11 +98,26 @@ def Core(ParamDict):
                 PAP_Dist(r,eta,PAP,OSRSeparation,OSRNum) * Sense(x-r,eta,T))
             
             #Split integral into upper and lower to eradiate error
-            upper = integrate.quad(combinedfun,x,np.inf)[0]#integrate.quad(combinedfun,x,np.inf)[0]
-            lower = integrate.quad(combinedfun,-np.inf,x)[0]#integrate.quad(combinedfun,-np.inf,x)[0]
-            Yearylist.append(upper+lower)
+            """
+            lower = integrate.quad(combinedfun,-np.inf,min(xlist))[0]
+            mid = integrate.quad(combinedfun,min(xlist),max(xlist))[0]
+            upper = integrate.quad(combinedfun,max(xlist),np.inf)[0]
+            Yearylist.append(lower+mid+upper)
+            """
+            if eta > 1e-2:
+                upper = integrate.quad(combinedfun,x,np.inf)[0]#integrate.quad(combinedfun,x,np.inf)[0]
+                lower = integrate.quad(combinedfun,-np.inf,x)[0]#integrate.quad(combinedfun,-np.inf,x)[0]
+                Yearylist.append(upper+lower)
             
-            
+            else:
+                if abs(x) <= 2:
+                    upper = integrate.quad(combinedfun,x,2)[0]#integrate.quad(combinedfun,x,np.inf)[0]
+                    lower = integrate.quad(combinedfun,-2,x)[0]#integrate.quad(combinedfun,-np.inf,x)[0]
+                    Yearylist.append(upper+lower)
+    
+                else:
+                    Yearylist.append(1-Phi)
+        
         Yearylist = np.asarray(Yearylist)
            
         rlist = np.ones(len(xlist)) * Phi 
