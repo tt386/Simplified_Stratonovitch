@@ -27,7 +27,7 @@ def Core(ParamDict):
     xlist = ParamDict["xlist"]
     OSRNum = ParamDict["OSRNum"]
     OSRSeparation = ParamDict["OSRSeparation"]
-    xNum = ParamDict["xNum"]
+    N = ParamDict["N"]
 
     #############################
     ###Functions#################
@@ -41,40 +41,37 @@ def Core(ParamDict):
             return (1-RRatio)*4/(np.pi * n)
 
     @functools.lru_cache()
-    def u1(x,eta,rho,d,PAP,Phi,N):
+    def u1(x,eta,d,PAP,Phi,N):
         """Numerical result for Dirichlet Heat Eqn"""
-        if  (x < rho):
-            tot = 0
+        #if  (x < rho):
+        tot = 0
 
-            for n in range(1,N,2):
-                tot += ((1-Phi)*4/(np.pi * n) * np.sin(n*np.pi*x/rho) *
-                        np.exp(-eta*PAP*(n*np.pi/d)**2))
+        for n in range(1,N,2):
+            tot += ((1-Phi)*4/(np.pi * n) * np.sin(n*np.pi*x/d) *
+                    np.exp(-eta*PAP*(n*np.pi/d)**2))
+            """
+            tot += ((1-Phi)*4/(np.pi * n) * np.sin(n*np.pi*x/rho) *
+                    np.exp(-eta*PAP*(n*np.pi/d)**2))
+            """
+        return tot
 
-            """
-            for n in range(1,N):
-                tot += (A(n,Phi) * np.sin(n*np.pi*x/rho) *
-                        np.exp(-eta*PAP*(n*np.pi/d)**2))
-                        #np.exp(-eta*PAP*(n*np.pi/rho)**2))
-            return tot
-        else:
-            return 0
-            """
-    def PAP_Dist(x,k,t,d,OSRNum):
+
+    def PAP_Dist(x,eta,t,d,OSRNum,N):
         Upperx = (OSRNum-1)*(1+d) + 1
         
         modx = x%(1+d)
         
         if x < 0:
-            return (1-Phi)*special.erf((-x)/np.sqrt(4*k*t))
+            return (1-Phi)*special.erf((-x)/np.sqrt(4*eta*t))
         elif x > Upperx:
-            return (1-Phi)*special.erf((x-Upperx)/np.sqrt(4*k*t))
+            return (1-Phi)*special.erf((x-Upperx)/np.sqrt(4*eta*t))
         elif modx > 1:
-            return u1((modx-1)/(d),k,1,d,t,Phi,50)
+            return u1((modx-1),eta,d,t,Phi,N)
         else:
             return 0
 
-    def Sense(r,k,t):
-        return (1./np.sqrt(4*np.pi*k*t)*np.exp(-r**2/(4*k*t)))
+    def Sense(r,eta,t):
+        return (1./np.sqrt(4*np.pi*eta*t)*np.exp(-r**2/(4*eta*t)))
 
 
 
@@ -87,15 +84,21 @@ def Core(ParamDict):
     for eta in etalist:
         print("Phi",Phi,"PAP",PAP,"Sep:",OSRSeparation,", OSRNum",OSRNum,", Eta:",eta)
         PAPylist = []
-        for x in xlist:
-            PAPylist.append(PAP_Dist(x,eta,PAP,OSRSeparation,OSRNum)) 
+
+        #It will be much better to have both for loops put together.
+        #for x in xlist:
+        #    PAPylist.append(PAP_Dist(x,eta,PAP,OSRSeparation,OSRNum,N)) 
             
         
         T = 1.-PAP
         Yearylist = []
-        for x in xlist:
+
+        for x in xlist:#[:len(xlist)//2]:
+            PAPylist.append(PAP_Dist(x,eta,PAP,OSRSeparation,OSRNum,N))
+
+            #print(eta,PAP,OSRSeparation,OSRNum,T)
             combinedfun = (lambda r: 
-                PAP_Dist(r,eta,PAP,OSRSeparation,OSRNum) * Sense(x-r,eta,T))
+                PAP_Dist(r,eta,PAP,OSRSeparation,OSRNum,N) * Sense(x-r,eta,T))
             
             #Split integral into upper and lower to eradiate error
             upper = integrate.quad(combinedfun,x,np.inf)[0]#integrate.quad(combinedfun,x,np.inf)[0]
@@ -109,9 +112,21 @@ def Core(ParamDict):
         
         PAPMatrix.append(PAPylist)
         YearMatrix.append(Yearylist)
-        
+       
+        Integrand = rlist/(rlist+Yearylist)-rlist
+
+        #Search for the lower limit which is the first time we
+        # fall below 10^-19 (beyond here we get much error)
+        UpperLim = len(xlist)
+        for x in range(len(xlist)):
+            if xlist[x] > (OSRNum + OSRSeparation*(OSRNum-1)):
+                if Integrand[x] < 1e-19:
+                    UpperLim = x
+                    break
+    
+        #Multiply by 2 because I took the half list
         EndYearRatioList.append(
-            integrate.simps(rlist/(rlist+Yearylist)-rlist,xlist))
+            2*integrate.simps(Integrand[:UpperLim],xlist[:UpperLim]))
         
     ###################################################
     ###Package and Return Results######################

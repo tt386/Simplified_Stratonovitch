@@ -393,18 +393,18 @@ Theoryy = 4*special.erfinv(1-Theoryx/(1-Theoryx))*np.sqrt(1-PAP)
 plt.figure()
 
 #plt.loglog(PAPList,1/np.sqrt(LeftMostMinima),label='Leftmost')
-plt.loglog(PhiList[:-1],SecondOrderMaxList[:-1])#,label='Rightmost')
-plt.loglog(Theoryx,Theoryy,'--k',label='Theory')
+plt.scatter(np.log10(PhiList[:-1]),np.log10(SecondOrderMaxList[:-1]),color='blue')#,label='Rightmost')
+plt.plot(np.log10(Theoryx),np.log10(Theoryy),'--',color='orange',linewidth=3,label='Theory')
 
 plt.grid()
 
-plt.legend(loc='lower left',fontsize=20)
+#plt.legend(loc='lower left',fontsize=20)
 
-plt.xlabel(r"$\phi$",fontsize=30)
-plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+plt.xlabel(r"$\log_{10}\left(\phi\right)$",fontsize=30)
+plt.ylabel(r"$\log_{10}\left(\frac{L}{\sqrt{DY}}\right)$",fontsize=30)
 
-plt.xticks(fontsize=20)
-plt.yticks(fontsize=20,rotation=45)
+plt.xticks(fontsize=30,rotation=45)
+plt.yticks(fontsize=30,rotation=45)
 
 
 plt.tight_layout()

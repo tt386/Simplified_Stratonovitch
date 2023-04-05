@@ -196,6 +196,19 @@ for c in range(len(SlopeMatrix)):
     plt.figure()
     plt.loglog(etaList,slopelist,label="Min ETA: %0.3f"%(etaList[np.where(slopelist==min(slopelist))[0][0]]))
 
+    x = etaList
+    UpperTheory = 1/(1 + ((8*rho*(1-Phi))/(np.pi**2*Phi))*np.exp(-etaList*PAP*(np.pi/rho)**2))
+
+    plt.loglog(etaList,UpperTheory,
+        "--")
+
+
+    LowerTheory = 1/(1 +(1/(1-rho)-1)*np.exp(1000*etaList))
+    plt.loglog(etaList,LowerTheory,
+        "--")
+
+    plt.ylim(10**-4,10**1)
+
     plt.legend(loc='lower left')
 
     plt.xlabel("eta")
@@ -209,20 +222,34 @@ for c in range(len(SlopeMatrix)):
     
 
     #Plot the Minima but with L considered
-    plt.figure()
-    plt.loglog(1/np.sqrt(etaList),slopelist,
-        label="Min L: %0.3f"%((1/np.sqrt(etaList))[slopelist.argmin()]))
+    fig,ax = plt.subplots() 
+    plt.loglog(1/np.sqrt(etaList),slopelist)#,
+        #label="Min L: %0.3f"%((1/np.sqrt(etaList))[slopelist.argmin()]))
 
     #plt.loglog(1/np.sqrt(etaList),SmoothedData,'k--',label='Smoothed')
 
-    plt.legend(loc='lower right')
+    x = etaList
+    Theory = 1/(1 + ((8*rho*(1-Phi))/(np.pi**2*Phi))*np.exp(-etaList*PAP*(np.pi/rho)**2)) - Phi
 
-    plt.xlabel("Size of Repeating Sub-Unit (l)")
-    plt.ylabel(r"\# New Resistant per Repeating Sub-Unit (ie per crop)")
+    plt.loglog(1/np.sqrt(etaList),Theory,
+        "--",label='Logistic \n Approximation')
+
+    plt.legend(loc='lower left',fontsize=20)
+
+    plt.xlabel(r"$\frac{l}{\sqrt{DY}}$",fontsize=30)
+    plt.ylabel(r"$\Delta R$",fontsize=30)
 
     plt.grid()
 
-    plt.title(r"Wild Proportion $\omega$: " + '{:.1E}'.format(Refuge_Proportion))
+
+    ax.tick_params(axis='both', which='major', labelsize=20)
+
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=45)
+
+    plt.title(r"$\omega$: " + '{:.1E}'.format(Refuge_Proportion),fontsize=20)
+
+    plt.tight_layout()
 
     plt.savefig(NoTheoryDir +
         "/LengthMinima_Curve_rho_" + '{:.1E}'.format(Refuge_Proportion) + ".png")
@@ -359,13 +386,13 @@ plt.close()
 
 ######################
 plt.figure()
-plt.loglog(x,1/np.sqrt(y))
-plt.loglog(x,1/np.sqrt(theorykinks),"--",label='Theory')
+plt.scatter(x,1/np.sqrt(y),color = "blue")
+plt.loglog(x,1/np.sqrt(theorykinks),"--",color='orange',label='Theory')
 
 plt.legend(loc='upper left',fontsize='20')
 plt.grid()
 plt.xlabel(r"$1-\omega$",fontsize=30)
-plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+plt.ylabel(r"$\frac{l}{\sqrt{DY}}$",fontsize=30)
 
 plt.xticks(fontsize=20)
 plt.yticks(fontsize=20,rotation=45)
@@ -388,6 +415,8 @@ y_slope = np.log(y)
 
 slope, intercept, r, p, se = linregress(x_slope, y_slope)
 
+#theorykinks = (x**2/(np.pi**2 * PAP)) * np.log(8*x/(Phi*np.pi**2))
+
 theorykinks = (x**2/(np.pi**2 * PAP)) * np.log(8*x/(Phi*np.pi**2))
 
 plt.figure()
@@ -405,13 +434,13 @@ plt.close()
 ##############################################################
 
 plt.figure()
-plt.loglog(x,1/np.sqrt(y))
-plt.loglog(x,1/np.sqrt(theorykinks),"--",label='Theory')
+plt.scatter(x,1/np.sqrt(y),color='blue')
+plt.loglog(x,1/np.sqrt(theorykinks),"--",color='orange',label='Theory')
 
-plt.legend(loc='upper left',fontsize='20')
+plt.legend(loc='upper right',fontsize='20')
 plt.grid()
 plt.xlabel(r"$\omega$",fontsize=30)
-plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+plt.ylabel(r"$\frac{l}{\sqrt{DY}}$",fontsize=30)
 
 plt.tight_layout()
 
@@ -477,6 +506,12 @@ testtheorylist = ((rhoList**2 * (1-rhoList)**2) / (16*np.pi**2 * PAP*t)*
                 )**0.5
 
 SecondTheory = (-1 + np.sqrt(1+PAP*np.pi**2 * (1-rhoList)/((1-PAP)*rhoList**2)))/(4*PAP*np.pi**2/rhoList**2)
+
+ThirdTheory = ((rhoList**2 * (1-rhoList)**2) / (16*np.pi**2 * PAP*t)*
+                    special.erfinv(1-Phi)**-2 *
+                    np.log(8*(2-np.sqrt(3))*rhoList/(Phi*np.pi**2))
+                )**0.5
+
 """
 MAG = 1e5
 def fitfunc(x,a,b,c,d):
@@ -494,6 +529,8 @@ plt.loglog(rhoList,MinimumList,label='data')#,label="Slope = %0.3f"%(result.slop
 plt.loglog(rhoList,testtheorylist,label='Theory') #Decent theory same order of magnitude
 
 plt.loglog(rhoList,SecondTheory,label='Theory 2')
+
+plt.loglog(rhoList,ThirdTheory,label='Theory 3')
 
 #plt.loglog(rhoList,fitfunc(MAG*rhoList,*popt)/MAG,label='Theory Fit')
 plt.legend(loc='lower left')
@@ -514,10 +551,31 @@ print("MINIMALIST RHO",rhoList.tolist())
 print("MINIMALIST ETA",MinimumList)
 
 
+##################################
+plt.figure()
+
+plt.loglog(rhoList,1/np.sqrt(MinimumList),label='data')#,label="Slope = %0.3f"%(result.slope))
+
+plt.loglog(rhoList,1/np.sqrt(testtheorylist),label='Theory') #Decent theory same order of magnitude
+
+plt.loglog(rhoList,1/np.sqrt(SecondTheory),label='Theory 2')
+
+plt.loglog(rhoList,1/np.sqrt(ThirdTheory),label='Theory 3')
+
+#plt.loglog(rhoList,fitfunc(MAG*rhoList,*popt)/MAG,label='Theory Fit')
+plt.legend(loc='lower left')
+
+plt.xlabel("Refuge Proportion")
+plt.ylabel("l at Minimum")
+
+plt.title("PAP: %0.5f"%(PAP))
+plt.grid()
+plt.savefig(NoTheoryDir + "/LengthComparingMinima.png")
+plt.close()
 
 
-
-
+for i in range(len(rhoList)):
+    print("Min at rho = %0.3f:\t%0.3f\tL=%0.3f"%(rhoList[i],(1/np.sqrt(MinimumList))[i],(1-rhoList[i])*((1/np.sqrt(MinimumList))[i])))
 ##################################
 #Scatter Plot
 

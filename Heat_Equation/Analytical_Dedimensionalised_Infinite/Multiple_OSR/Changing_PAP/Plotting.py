@@ -2,6 +2,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pyplot as plt
 
+plt.rcParams['text.usetex'] = True
+
 import numpy as np
 import time
 
@@ -187,7 +189,7 @@ for c in range(len(SlopeMatrix)):
     plt.legend(loc='lower right')
 
     plt.xlabel("Size of Isolated Field (L)")
-    plt.ylabel("# New Resistant per unit Field Size (ie per crop)")
+    plt.ylabel("Num New Resistant per unit Field Size (ie per crop)")
 
     plt.grid()
 
@@ -216,7 +218,7 @@ for c in range(len(SlopeMatrix)):
         plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
     """
     plt.xlabel("Size of Isolated Field (L)")
-    plt.ylabel("Total # New Resistant")
+    plt.ylabel("Total Num New Resistant")
 
     plt.grid()
 
@@ -246,7 +248,7 @@ for c in range(len(SlopeMatrix)):
         plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
     """
     plt.xlabel("Size of Isolated Field (L)")
-    plt.ylabel("Total # New Resistant if we split Massive OSR into n regions size L")
+    plt.ylabel("Total Num New Resistant if we split Massive OSR into n regions size L")
 
     plt.grid()
 
@@ -421,18 +423,18 @@ Theoryy = 4*special.erfinv(1-Phi)*np.sqrt(Theoryx)
 plt.figure()
 
 #plt.loglog(PAPList,1/np.sqrt(LeftMostMinima),label='Leftmost')
-plt.loglog(1-PAPList[:-1],SecondOrderMaxList[:-1])#,label='Rightmost')
-plt.loglog(Theoryx,Theoryy,'--k',label='Theory')
+plt.scatter(np.log10(1-PAPList[:-1]),np.log10(SecondOrderMaxList[:-1]),color='blue')#,label='Rightmost')
+plt.plot(np.log10(Theoryx),np.log10(Theoryy),'--',color='orange',linewidth=3,label='Theory')
 
 plt.grid()
 
-plt.legend(loc='upper left',fontsize=20)
+#plt.legend(loc='upper left',fontsize=20)
 
-plt.xlabel(r"$1-P$",fontsize=30)
-plt.ylabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+plt.xlabel(r"$\log_{10}\left(1-P\right)$",fontsize=30)
+plt.ylabel(r"$\log_{10}\left(\frac{L_{min}}{\sqrt{DY}}\right)$",fontsize=30)
 
-plt.xticks(fontsize=20)
-plt.yticks(fontsize=20,rotation=45)
+plt.xticks(fontsize=30,rotation=45)
+plt.yticks(fontsize=30,rotation=45)
 
 
 plt.tight_layout()

@@ -8,7 +8,7 @@ sys.path.insert(0,'../CoreFunctions')
 from Core import Core
 from Params import *
 
-
+import sys
 starttime = time.time()
 
 #################################
@@ -32,6 +32,38 @@ if not os.path.isdir(SepSaveDirName):
 
 ParamDict["OSRSeparation"] = OSRSeparation
 
+"""
+#Define dynamic x-list:
+xlist = np.arange(-x_buffer,OSRNum + (OSRNum-1)*OSRSeparation + x_buffer,dx)
+
+#Add on the exponentially distributed buffer:
+nlist = np.arange(x_buffer2)
+
+ConcatList = dx*x_buffer2Factor**(nlist)
+
+PreList = xlist[0] - np.flip(ConcatList)
+
+PostList = xlist[-1] + ConcatList
+
+xlist = np.concatenate((PreList,xlist,PostList))
+"""
+#Define dynamic x-list:
+LowerLimit = -x_buffer
+UpperLimit = OSRNum + (OSRNum-1)*OSRSeparation + x_buffer
+xlist = np.arange((LowerLimit+UpperLimit)/2,UpperLimit,dx)
+
+
+#Add on the exponentially distributed buffer:
+nlist = np.arange(x_buffer2)
+
+ConcatList = dx*x_buffer2Factor**(nlist)
+
+PostList = xlist[-1] + ConcatList
+
+xlist = np.concatenate((xlist,PostList))
+
+
+ParamDict["xlist"] = xlist
 
 #################################
 ###Main Process##################

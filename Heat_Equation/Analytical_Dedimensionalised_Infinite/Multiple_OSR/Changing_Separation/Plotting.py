@@ -2,6 +2,8 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pyplot as plt
 
+plt.rcParams['text.usetex'] = True
+
 import numpy as np
 import time
 
@@ -67,68 +69,75 @@ LeftMostMinima = []
 RightMostMinima = []
 
 for i in dirlist:
-    ######################
-    ###Downloading Data###
-    ######################
-    with np.load(os.path.join(i, filename)) as data:
-        SlopeMatrix.append(data['RDifferenceList'])
-        OSRSeparationList.append(data['OSRSeparation'])
-        etalist = data["etalist"]
-        timetaken = data["timetaken"]
-        PAP = data["PAP"]
-        Phi = data["Phi"]
-        OSRNum = data["OSRNum"]
+    try:
+        ######################
+        ###Downloading Data###
+        ######################
+        with np.load(os.path.join(i, filename)) as data:
+            SlopeMatrix.append(data['RDifferenceList'])
+            OSRSeparationList.append(data['OSRSeparation'])
+            etalist = data["etalist"]
+            timetaken = data["timetaken"]
+            PAP = data["PAP"]
+            Phi = data["Phi"]
+            OSRNum = data["OSRNum"]
+            
+            xlist = data['xlist']
+            PAPMatrix = data["PAPMatrix"]
+            YearMatrix = data["YearMatrix"]
+            
+            timetaken = data['timetaken']
+            print("TIME TAKEN:",timetaken)
+
+        ################
+        ###Find Minima##
+        ################
+        """    
+        minlistindices = argrelextrema(SlopeMatrix[-1],np.less)
+        minlist = etalist[minlistindices[0]]
+        """
+        minlist = []
+
+        #SlopeMatrix[-1] = (np.asarray(SlopeMatrix[-1])/np.sqrt(etalist)).tolist()
+     
+        for j in range(2,len(SlopeMatrix[-1])-2):
+            if  (SlopeMatrix[-1][j-1] > SlopeMatrix[-1][j] and 
+                SlopeMatrix[-1][j-2] > SlopeMatrix[-1][j] and
+                SlopeMatrix[-1][j] < SlopeMatrix[-1][j+1] and
+                SlopeMatrix[-1][j] < SlopeMatrix[-1][j+2]):
+                minlist.append(etalist[j])
+        print(minlist) 
+
+        if len(minlist)==0: 
+            minlist.append(0)
+
+        LeftMostMinima.append(minlist[0])
+        RightMostMinima.append(minlist[-1])
         
-        xlist = data['xlist']
-        PAPMatrix = data["PAPMatrix"]
-        YearMatrix = data["YearMatrix"]
-        
-        timetaken = data['timetaken']
-        print("TIME TAKEN:",timetaken)
-
-    ################
-    ###Find Minima##
-    ################
-    """    
-    minlistindices = argrelextrema(SlopeMatrix[-1],np.less)
-    minlist = etalist[minlistindices[0]]
-    """
-    minlist = []
-
-    #SlopeMatrix[-1] = (np.asarray(SlopeMatrix[-1])/np.sqrt(etalist)).tolist()
- 
-    for j in range(1,len(SlopeMatrix[-1])-1):
-        if  (SlopeMatrix[-1][j-1] > SlopeMatrix[-1][j] and 
-            SlopeMatrix[-1][j] < SlopeMatrix[-1][j+1]):
-            minlist.append(etalist[j])
-    print(minlist) 
-
-    if len(minlist)==0: 
-        minlist.append(0)
-
-    LeftMostMinima.append(minlist[0])
-    RightMostMinima.append(minlist[-1])
+        rlist = np.ones(len(xlist))*(Phi)
+        print("Plotting Sep:",OSRSeparationList[-1]," Time:",timetaken)
+        Plotting = [0,5,-1]
     
-    rlist = np.ones(len(xlist))*(Phi)
-    print("Plotting Sep:",OSRSeparationList[-1]," Time:",timetaken)
-    Plotting = [0,5,-1]
-    for p in Plotting:
-        eta = etalist[p]
-        PAPylist = PAPMatrix[p]
-        Yearylist = YearMatrix[p]
+        for p in range(len(etalist)):
+            if p%100 == 0:
+                eta = etalist[p]
+                PAPylist = PAPMatrix[p]
+                Yearylist = YearMatrix[p]
 
-        plt.figure()
-        plt.semilogy(xlist,PAPylist,label='PAP')
-        plt.semilogy(xlist,Yearylist,label='Year')
-        plt.semilogy(xlist,rlist/(rlist+Yearylist)-rlist,label='Integrand')
-        plt.legend(loc='upper left')
-        plt.title("Diffusion Coeff: "+ '{0:.5f}'.format(eta))
+                plt.figure()
+                plt.loglog(xlist,PAPylist,label='PAP')
+                plt.loglog(xlist,Yearylist,label='Year')
+                plt.loglog(xlist,rlist/(rlist+Yearylist)-rlist,label='Integrand')
+                plt.legend(loc='upper left')
+                plt.title("Diffusion Coeff: "+ '{0:.5f}'.format(eta))
+                
+                plt.xlabel("Space")
+                plt.grid()
+                plt.savefig(i + "/Eta_" + '{0:.5f}'.format(eta) + ".png")
+                plt.close()    
         
-        plt.xlabel("Space")
-        plt.grid()
-        plt.savefig(i + "/Eta_" + '{0:.5f}'.format(eta) + ".png")
-        plt.close()    
-
+    except:
+        print(i," not found")
 
 #Sort these lists
 zipped_lists = zip(OSRSeparationList, SlopeMatrix, LeftMostMinima, RightMostMinima)
@@ -151,8 +160,8 @@ for c in range(len(SlopeMatrix)):
 
     #smooth = savgol_filter(slopelist,51,10)
     plt.figure()
-    plt.loglog(1/np.sqrt(etalist),slopelist,
-        label="Min L: %0.3f"%((1/np.sqrt(etalist))[slopelist.argmin()]))
+    plt.loglog(1/np.sqrt(etalist),slopelist)
+    #label="Min L: %0.3f"%((1/np.sqrt(etalist))[slopelist.argmin()]))
 
     """
     #Add markers at minima points
@@ -164,14 +173,19 @@ for c in range(len(SlopeMatrix)):
         plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
     """
 
-    plt.legend(loc='lower right')
+    #plt.legend(loc='lower right')
 
-    plt.xlabel("Size of Isolated Field (L)")
-    plt.ylabel("# New Resistant per unit Field Size (ie per crop)")
+    plt.xlabel(r"$\frac{L}{\sqrt{DY}}$",fontsize=30)
+    plt.ylabel(r"$\Delta R$",fontsize=30)
 
     plt.grid()
 
-    plt.title("OSRNum: %d, OSRSep: %0.3f"%(OSRNum,OSRSep))
+    plt.title(r"$\delta = $ %0.3f"%(OSRSep),fontsize=30)
+
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20,rotation=45)
+
+    plt.tight_layout()
 
     plt.savefig(str(args.directory) + 
         "/Minima_Curve_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
@@ -183,18 +197,10 @@ for c in range(len(SlopeMatrix)):
     print("S:",list(slopelist))
 
     ################################
+    """
     plt.figure()
     plt.loglog(1/np.sqrt(etalist),slopelist/np.sqrt(etalist))
 
-    """
-    #Add markers at minima points
-    leftindex = np.where(etalist==LeftMostMinima[c])[0]
-    rightindex = np.where(etalist==RightMostMinima[c])[0]
-    print("leftindex",leftindex)
-    if len(leftindex) > 0:
-        plt.loglog(LeftMostMinima[c],slopelist[leftindex],"ko")
-        plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
-    """
     plt.xlabel("Size of Isolated Field (L)")
     plt.ylabel("Total # New Resistant")
 
@@ -205,7 +211,7 @@ for c in range(len(SlopeMatrix)):
     plt.savefig(str(args.directory) +
         "/Minima_Curve_TOTAL_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
     plt.close()
-
+    """
     ################################
     #Refer to this as 'constrained' because we constain to wanting a certain
     #amount of crop (=TOT)
@@ -213,18 +219,10 @@ for c in range(len(SlopeMatrix)):
 
     Num = TOT/(1/np.sqrt(etalist)) #Number of widths L that fit into TOT
 
+    """
     plt.figure()
     plt.loglog(1/np.sqrt(etalist),slopelist/np.sqrt(etalist) * Num)
 
-    """
-    #Add markers at minima points
-    leftindex = np.where(etalist==LeftMostMinima[c])[0]
-    rightindex = np.where(etalist==RightMostMinima[c])[0]
-    print("leftindex",leftindex)
-    if len(leftindex) > 0:
-        plt.loglog(LeftMostMinima[c],slopelist[leftindex],"ko")
-        plt.loglog(RightMostMinima[c],slopelist[rightindex],"ko")
-    """
     plt.xlabel("Size of Isolated Field (L)")
     plt.ylabel("Total # New Resistant if we split Massive OSR into n regions size L")
 
@@ -235,7 +233,7 @@ for c in range(len(SlopeMatrix)):
     plt.savefig(str(args.directory) +
         "/Minima_Curve_TOTALCONSTRAINED_Sep_" + '{:.1E}'.format(OSRSep) + ".png")
     plt.close()
-
+    """
 
 
     #smooth = savgol_filter(slopelist,11,3)
@@ -262,28 +260,71 @@ for c in range(len(SlopeMatrix)):
 ####################################
 ###Plotting Minima##################
 ####################################
+L1Min  = 1.15
+
+RightMostMinimaTheory = L1Min/(OSRNum + (OSRNum-1)*OSRSeparationList)
+
+"""
 RightMostMinimaTheory = ((RightMostMinima[0]/(OSRNum)**2) 
     * (OSRNum+(OSRNum-1)*OSRSeparationList)**2)
+"""
 
 print("Leftmost: ",LeftMostMinima)
 plt.figure()
 
-plt.plot(OSRSeparationList,1/np.sqrt(LeftMostMinima),label='Leftmost')
-plt.plot(OSRSeparationList,1/np.sqrt(RightMostMinima),label='Rightmost')
+plt.loglog(OSRSeparationList,1/np.sqrt(LeftMostMinima),label='Rightmost')
+plt.loglog(OSRSeparationList,1/np.sqrt(RightMostMinima),label='Leftmost')
 
-if OSRSeparationList[0] == 0:
-    plt.plot(OSRSeparationList,1/np.sqrt(RightMostMinimaTheory),"--",label='RightMost Theory')
+plt.loglog(OSRSeparationList,RightMostMinimaTheory,"--",label='Leftmost Theory')
 
-plt.legend(loc='upper center')
+
+plt.loglog(OSRSeparationList,1.15*np.ones(len(OSRSeparationList)),'--k',label='Isolated Result')
+
+plt.legend(loc='upper right')
 
 plt.grid()
 
-plt.xlabel("OSR Separation Width")
-plt.ylabel("L value of Minima")
+plt.xlabel(r"$\delta$",fontsize=30)
+plt.ylabel(r"$\frac{L}{\sqrt{DY}}$ value of Minima",fontsize=30)
 
-plt.title("Number of OSR: %d"%(OSRNum))
+plt.title("Number of Cropping Regions: %d"%(OSRNum))
+
+plt.tight_layout()
 
 plt.savefig(str(args.directory) + "/Locations_Of_Minima.png")
 
 plt.close()
 
+
+
+################################
+plt.figure()
+
+plt.plot(OSRSeparationList,LeftMostMinima,label='Leftmost')
+plt.plot(OSRSeparationList,RightMostMinima,label='Rightmost')
+
+plt.plot(OSRSeparationList,1/RightMostMinimaTheory**2,"--",label='Rightmost Theory')
+
+
+plt.plot(OSRSeparationList,(1/1.15**2)*np.ones(len(OSRSeparationList)),'--k',label='Isolated Result')
+
+plt.legend(loc='upper right')
+
+plt.grid()
+
+plt.xlabel(r"$\delta$",fontsize=30)
+plt.ylabel(r"$\eta$ value of Minima",fontsize=30)
+
+plt.title("Number of Cropping Regions: %d"%(OSRNum))
+
+plt.tight_layout()
+
+plt.savefig(str(args.directory) + "/ETALocations_Of_Minima.png")
+
+plt.close()
+
+
+
+
+
+print("Final value:",(1/np.sqrt(LeftMostMinima))[-1])
